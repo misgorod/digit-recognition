@@ -2,11 +2,17 @@
 <html>
     <head>
         <script src="/static/jsmpeg.min.js"></script>
+        <script src="/static/mjpeg.js"></script>
     </head>
     <body>
         <h1>Digit recognition</h1>
         <p class="digit"></p>
         <!-- <img src="http://127.0.0.1:8000/feed/1"></img> -->
+        <canvas id="player" style="background: #000;"></canvas>
+        <script>
+          var player = new MJPEG.Player("player", "http://localhost:8000/mjpeg/1");
+          player.start();
+        </script>
         <div class="jsmpeg" data-url="ws://127.0.0.1:8000/ws/mpeg/1"></div>
         <script type="text/javascript" src="/static/script.js"></script>
     </body>

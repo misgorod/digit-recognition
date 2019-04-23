@@ -52,7 +52,7 @@ async def hello(request):
 @router.get("/ws/mpeg/{id}")
 async def ws_connection(request):
     id = request.match_info['id']
-    ws = web.WebSocketResponse()
+    ws = web.WebSocketResponse(protocols=["null"])
     await ws.prepare(request)
     if id in sockets:
         sockets[id].output_socket = ws
@@ -92,7 +92,7 @@ async def get_mjpeg(request):
     files = gen_files("files")
     while True:
         async with aiofiles.open(f"files/{next(files)}", "rb+") as f:
-            frame = f.read()
+            frame = await f.read()
         with MultipartWriter('image/jpeg', boundary='bound') as mpwriter:
             mpwriter.append(frame, {
                 'Content-Type': 'image/jpeg'
