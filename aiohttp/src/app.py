@@ -1,7 +1,12 @@
 import os
 from aiohttp import web, MultipartWriter, WSMsgType
 from time import time
+from PIL import Image
+import io
+import numpy as np
 import subprocess
+import keras
+from keras.models import load_model                                                                                                                                                                         
 
 import aiofiles
 
@@ -65,18 +70,18 @@ async def ws_connection(request):
     sockets[id].output_socket = None
     return ws
 
-@router.post("/mpeg/{id}")
-async def send_mpeg(request):
-    id = request.match_info['id']
-    if id not in sockets or not sockets[id].output_sockets:
-        return web.Response(status=409, text="Client not connected")
-    while True:
-        cmd = ['ffmpeg', '-i', '/app/src/files/IMG_%d.jpg', f'/app/src/files/{id}_output.ts']
-        code = subprocess.call(cmd)
-        if not code == 0:
-            raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))  
-        for sock in sockets[id].output_sockets:
-            sock.send_bytes()
+# @router.post("/mpeg/{id}")
+# async def send_mpeg(request):
+#     id = request.match_info['id']
+#     if id not in sockets or not sockets[id].output_sockets:
+#         return web.Response(status=409, text="Client not connected")
+#     while True:
+#         cmd = ['ffmpeg', '-i', '/app/src/files/IMG_%d.jpg', f'/app/src/files/{id}_output.ts']
+#         code = subprocess.call(cmd)
+#         if not code == 0:
+#             raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))  
+#         for sock in sockets[id].output_sockets:
+#             sock.send_bytes()
 
 # Video streaming through motion jpeg
 @router.get("/mjpeg/{id}")
@@ -90,9 +95,23 @@ async def get_mjpeg(request):
     )
     await response.prepare(request)
     files = gen_files("files")
+
+    #
+    model = load_model('model/digs.h5')
+    #
     while True:
         async with aiofiles.open(f"files/{next(files)}", "rb+") as f:
+            #Here
+            #gonna
             frame = await f.read()
+            nframe = Image.open(io.BytesIO(frame)).convert('LA')
+            nframe = nframe.resize((28,28))
+            nframe, dump = nframe.split()
+            nframe = np.array(nframe)
+            nframe = np.reshape(nframe,(1,784))
+            s = np.argmax(model.predict(nframe)) #variable to display
+            #be
+            #some nn
         with MultipartWriter('image/jpeg', boundary='bound') as mpwriter:
             mpwriter.append(frame, {
                 'Content-Type': 'image/jpeg'

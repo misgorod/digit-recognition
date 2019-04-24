@@ -3,3 +3,7 @@ aiohttp-devtools
 cchardet
 aiodns
 aiofiles
+numpy
+tensorflow
+keras
+pillow
