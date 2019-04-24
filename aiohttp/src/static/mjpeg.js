@@ -105,11 +105,8 @@ var MJPEG = (function(module) {
             dstRect.width,
             dstRect.height
           );
-          console.log(".");
         } catch (e) {
-          // if we can't draw, don't bother updating anymore
           self.stop();
-          console.log("!");
           throw e;
         }
       }

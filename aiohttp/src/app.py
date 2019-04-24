@@ -1,4 +1,5 @@
 import os
+import aiohttp
 from aiohttp import web, MultipartWriter, WSMsgType
 from time import time
 from PIL import Image
@@ -15,43 +16,14 @@ sockets = dict()
 
 class Session:
     def __init__(self, input_socket=None, output_socket=None):
-        self.__output_sockets = list()
+        self.output_sockets = list()
         self.input_socket = input_socket
-        if output_socket:
+        if output_socket != None:
             self.output_sockets.append(output_socket)
-
-    @property
-    def input_socket(self):
-        return self.__input_socket
-
-    @input_socket.setter
-    def input_socket(self, value):
-        self.__input_socket = value
-
-    @property
-    def output_sockets(self):
-        return self.__output_sockets
 
 @router.get("/")
 async def hello(request):
     return web.Response(text="hello")
-
-# Saves image
-# @router.post("/save/{id}")
-# async def send(request):
-#     reader = await request.multipart()
-#     image = await reader.next()
-#     filename = create_name()
-#     async with open(os.path.join('static/files', filename), 'wb+') as f:
-#         while True:
-#             chunk = await image.read_chunk()
-#             if not chunk:
-#                 break
-#             await f.write(chunk)
-#     return web.Response(text="OK")
-
-# def create_name():
-#     return str(round(time() * 1000))
 
 # Video streaming through websocket mpeg
 @router.get("/ws/mpeg/{id}")
@@ -60,32 +32,21 @@ async def ws_connection(request):
     ws = web.WebSocketResponse(protocols=["null"])
     await ws.prepare(request)
     if id in sockets:
-        sockets[id].output_socket = ws
+        sockets[id].output_sockets.append(ws)
     else:
+        await ws.send_str("created")
         sockets[id] = Session(output_socket=ws)
     async for msg in ws:
         if msg.type == WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
                   ws.exception())
-    sockets[id].output_socket = None
+    sockets[id].output_sockets.remove(ws)
     return ws
-
-# @router.post("/mpeg/{id}")
-# async def send_mpeg(request):
-#     id = request.match_info['id']
-#     if id not in sockets or not sockets[id].output_sockets:
-#         return web.Response(status=409, text="Client not connected")
-#     while True:
-#         cmd = ['ffmpeg', '-i', '/app/src/files/IMG_%d.jpg', f'/app/src/files/{id}_output.ts']
-#         code = subprocess.call(cmd)
-#         if not code == 0:
-#             raise ValueError('Error {} executing command: {}'.format(retcode, ' '.join(cmd)))  
-#         for sock in sockets[id].output_sockets:
-#             sock.send_bytes()
 
 # Video streaming through motion jpeg
 @router.get("/mjpeg/{id}")
 async def get_mjpeg(request):
+    id = request.match_info['id']
     response = web.StreamResponse(
         status=200,
         reason='OK',
@@ -101,17 +62,16 @@ async def get_mjpeg(request):
     #
     while True:
         async with aiofiles.open(f"files/{next(files)}", "rb+") as f:
-            #Here
-            #gonna
             frame = await f.read()
             nframe = Image.open(io.BytesIO(frame)).convert('LA')
             nframe = nframe.resize((28,28))
             nframe, dump = nframe.split()
             nframe = np.array(nframe)
             nframe = np.reshape(nframe,(1,784))
-            s = np.argmax(model.predict(nframe)) #variable to display
-            #be
-            #some nn
+            s = np.argmax(model.predict(nframe)) 
+            if id in sockets and sockets[id].output_sockets:
+                for sock in sockets[id].output_sockets:
+                    await sock.send_str(str(s))
         with MultipartWriter('image/jpeg', boundary='bound') as mpwriter:
             mpwriter.append(frame, {
                 'Content-Type': 'image/jpeg'
@@ -119,14 +79,44 @@ async def get_mjpeg(request):
             await mpwriter.write(response, close_boundary=False)
         await response.drain()
 
+@router.post("/image/{id}")
+async def get_jpeg(request):
+    id = request.match_info['id']
+    print(await request.content.read())
+    return web.Response(text="OK")
 
 def gen_files(directory):
     while True:
         for fl in os.listdir(directory):
             yield fl
 
+ALLOWED_HEADERS = ','.join((
+    'content-type',
+    'accept',
+    'origin',
+    'authorization',
+    'x-requested-with',
+    'x-csrftoken',
+    ))
+
+def set_cors_headers (request, response):
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Methods'] = request.method
+    response.headers['Access-Control-Allow-Headers'] = ALLOWED_HEADERS
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
+async def cors_factory (app, handler):
+    async def cors_handler (request):
+        if request.method == 'OPTIONS':
+            return set_cors_headers(request, web.Response())
+        else:
+            response = await handler(request)
+            return set_cors_headers(request, response)
+    return cors_handler
+
 def create_app():
-    app = web.Application()
+    app = web.Application(middlewares=[cors_factory])
     app.add_routes(router)
     return app
 
