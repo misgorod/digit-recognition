@@ -82,7 +82,13 @@ async def get_mjpeg(request):
 @router.post("/image/{id}")
 async def get_jpeg(request):
     id = request.match_info['id']
-    print(await request.content.read())
+    post = await request.post()
+    file_field = post['data']
+    image_bytes = file_field.file.read()
+    image_pil = Image.open(io.BytesIO(image_bytes))
+    image_resized = image_pil.resize((24, 24), Image.ANTIALIAS)
+    async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
+        await f.write(image_bytes)
     return web.Response(text="OK")
 
 def gen_files(directory):
