@@ -85,30 +85,20 @@ async def get_jpeg(request):
     id = request.match_info['id']
     post = await request.post()
     file_field = post['data']
-    modelfin = load_model('model/zone.h5')
+   
     modelrec = load_model('model/digs.h5')
 
     image_bytes = file_field.file.read()
     image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
-    image = image_pil.filter(ImageFilter.FIND_EDGES)
-    image.save("static/image2.png")
+    image = image_pil.filter(ImageFilter.CONTOUR)
     inverted_image = PIL.ImageOps.invert(image)
-    inverted_image.save("static/image1.png")
-    images = inverted_image.resize((8, 8))
-    images.save("static/image.png")
-
-    
+    images = inverted_image.resize((28, 28))
     images = np.array(images) 
-    images = np.reshape(images,(1,64)) 
-    image_pos = modelfin.predict(images)
-    print(image_pos)
-    
-    width, height = inverted_image.size
-    left, upper, right, lower = np.floor(image_pos[0]/8) * width, np.floor(image_pos[1]/8 + image_pos[3]/8)* height , np.floor(image_pos[0]/8 + image_pos[2]/8) * width, np.floor(image_pos[1]/8 )* height
-    inverted_image = inverted_image.crop(left, upper, right, lower)
-    inverted_image.save("static/find.png")
-    
-    s=5
+    images = np.reshape(images,(1,784)) 
+    image_pos = modelrec.predict(images)
+    s = np.argmax(image_pos)
+    print(s)
+
     if id in sockets and sockets[id].output_sockets:
         for sock in sockets[id].output_sockets:
             await sock.send_str(f"new: {s}")
