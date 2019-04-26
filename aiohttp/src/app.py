@@ -89,17 +89,20 @@ async def get_jpeg(request):
     modelrec = load_model('model/digs.h5')
 
     image_bytes = file_field.file.read()
-    image_pil = Image.open(io.BytesIO(image_bytes)).convert('LA')
+    image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
     image = image_pil.filter(ImageFilter.FIND_EDGES)
+    image.save("static/image2.png")
     inverted_image = PIL.ImageOps.invert(image)
-    images = inverted_image.resize((8, 8), Image.ANTIALIAS)
+    inverted_image.save("static/image1.png")
+    images = inverted_image.resize((8, 8))
     images.save("static/image.png")
 
-    images, dump = images.split() 
+    
     images = np.array(images) 
     images = np.reshape(images,(1,64)) 
     image_pos = modelfin.predict(images)
-
+    print(image_pos)
+    
     width, height = inverted_image.size
     left, upper, right, lower = np.floor(image_pos[0]/8) * width, np.floor(image_pos[1]/8 + image_pos[3]/8)* height , np.floor(image_pos[0]/8 + image_pos[2]/8) * width, np.floor(image_pos[1]/8 )* height
     inverted_image = inverted_image.crop(left, upper, right, lower)
