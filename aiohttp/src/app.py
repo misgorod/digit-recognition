@@ -44,49 +44,58 @@ async def ws_connection(request):
     return ws
 
 # Video streaming through motion jpeg
-@router.get("/mjpeg/{id}")
-async def get_mjpeg(request):
-    id = request.match_info['id']
-    response = web.StreamResponse(
-        status=200,
-        reason='OK',
-        headers={
-            'Content-Type': 'multipart/x-mixed-replace;boundary=--bound'
-        }
-    )
-    await response.prepare(request)
-    files = gen_files("files")
+# @router.get("/mjpeg/{id}")
+# async def get_mjpeg(request):
+#     id = request.match_info['id']
+#     response = web.StreamResponse(
+#         status=200,
+#         reason='OK',
+#         headers={
+#             'Content-Type': 'multipart/x-mixed-replace;boundary=--bound'
+#         }
+#     )
+#     await response.prepare(request)
+#     files = gen_files("files")
 
-    #
-    model = load_model('model/digs.h5')
-    #
-    while True:
-        async with aiofiles.open(f"files/{next(files)}", "rb+") as f:
-            frame = await f.read()
-            nframe = Image.open(io.BytesIO(frame)).convert('LA')
-            nframe = nframe.resize((28,28))
-            nframe, dump = nframe.split()
-            nframe = np.array(nframe)
-            nframe = np.reshape(nframe,(1,784))
-            s = np.argmax(model.predict(nframe)) 
-            if id in sockets and sockets[id].output_sockets:
-                for sock in sockets[id].output_sockets:
-                    await sock.send_str(str(s))
-        with MultipartWriter('image/jpeg', boundary='bound') as mpwriter:
-            mpwriter.append(frame, {
-                'Content-Type': 'image/jpeg'
-            })
-            await mpwriter.write(response, close_boundary=False)
-        await response.drain()
+#     #
+#     model = load_model('model/digs.h5')
+#     #
+#     while True:
+#         async with aiofiles.open(f"files/{next(files)}", "rb+") as f:
+#             frame = await f.read()
+#             nframe = Image.open(io.BytesIO(frame)).convert('LA')
+#             nframe = nframe.resize((28,28))
+#             nframe, dump = nframe.split()
+#             nframe = np.array(nframe)
+#             nframe = np.reshape(nframe,(1,784))
+#             s = np.argmax(model.predict(nframe)) 
+#             if id in sockets and sockets[id].output_sockets:
+#                 for sock in sockets[id].output_sockets:
+#                     await sock.send_str(str(s))
+#         with MultipartWriter('image/jpeg', boundary='bound') as mpwriter:
+#             mpwriter.append(frame, {
+#                 'Content-Type': 'image/jpeg'
+#             })
+#             await mpwriter.write(response, close_boundary=False)
+#         await response.drain()
 
 @router.post("/image/{id}")
 async def get_jpeg(request):
     id = request.match_info['id']
     post = await request.post()
     file_field = post['data']
+    model = load_model('model/digs.h5')
     image_bytes = file_field.file.read()
-    image_pil = Image.open(io.BytesIO(image_bytes))
-    image_resized = image_pil.resize((24, 24), Image.ANTIALIAS)
+    image_pil = Image.open(io.BytesIO(image_bytes)).convert('LA')
+    image_pil = image_pil.resize((28, 28), Image.ANTIALIAS)
+    # image_pil.save("static/image.png")
+    image_pil, dump = image_pil.split() 
+    image_pil = np.array(image_pil) 
+    image_pil = np.reshape(image_pil,(1,784)) 
+    s = np.argmax(model.predict(image_pil))
+    if id in sockets and sockets[id].output_sockets:
+        for sock in sockets[id].output_sockets:
+            await sock.send_str(f"new: {s}")
     async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
         await f.write(image_bytes)
     return web.Response(text="OK")

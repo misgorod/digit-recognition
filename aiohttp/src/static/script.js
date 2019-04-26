@@ -5,7 +5,7 @@ socket.onopen = function() {
 };
 
 socket.onmessage = function(event) {
-    //console.log("Got data: " + event.data);
+    console.log("Got data: " + event.data);
     var elements = document.getElementsByClassName("digit");
     Array.from(elements)
     .map(function (elem) {
@@ -27,7 +27,7 @@ socket.onerror = function(error) {
 };
 
 constraints = {
-    video: { width: 1280, height: 720 }
+    video: { width: 300, height: 300 }
 }
 
 navigator.mediaDevices.getUserMedia(constraints)
@@ -49,7 +49,6 @@ navigator.mediaDevices.getUserMedia(constraints)
     );
 
 function clicked () {
-    alert('clicked!');
     var { blob } = captureVideoFrame("video", "jpeg");
     var fd = new FormData();
     fd.append('data', blob);
