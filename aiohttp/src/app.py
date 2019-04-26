@@ -94,7 +94,7 @@ async def get_jpeg(request):
     inverted_image = PIL.ImageOps.invert(image)
     images = inverted_image.resize((28, 28))
     images = np.array(images) 
-    images = np.reshape(images,(1,784)) 
+    images = np.reshape(images,(1,28,28)) 
     image_pos = modelrec.predict(images)
     s = np.argmax(image_pos)
     print(s)
