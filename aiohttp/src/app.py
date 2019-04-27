@@ -29,6 +29,7 @@ async def hello(request):
 # Video streaming through websocket mpeg
 @router.get("/ws/mpeg/{id}")
 async def ws_connection(request):
+    print('get here')
     id = request.match_info['id']
     ws = web.WebSocketResponse(protocols=["null"])
     await ws.prepare(request)
@@ -82,6 +83,7 @@ async def ws_connection(request):
 
 @router.post("/image/{id}")
 async def get_jpeg(request):
+    print('here')
     id = request.match_info['id']
     post = await request.post()
     file_field = post['data']

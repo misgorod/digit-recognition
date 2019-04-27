@@ -49,9 +49,12 @@ navigator.mediaDevices.getUserMedia(constraints)
     );
 
 function clicked () {
+   
     var { blob } = captureVideoFrame("video", "jpeg");
     var fd = new FormData();
+    
     fd.append('data', blob);
+    
     $.ajax({
         type: 'POST',
         url: "http://127.0.0.1:8000/image/1",
@@ -59,15 +62,11 @@ function clicked () {
         processData: false,
         contentType: false
     }).done(function(data) {
-        console.log(data);
+        alert('Done'); 
 });
+
 }
-document.onkeydown = function (e) {
-    var keyCode = e.keyCode;
-    if(keyCode == 90) {
-        clicked();
-    }
-};
+
     
 function captureVideoFrame(video, format, quality) {
     if (typeof video === 'string') {
