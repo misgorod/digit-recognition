@@ -1,30 +1,30 @@
-socket = new WebSocket("ws://127.0.0.1:8000/ws/mpeg/1");
+// socket = new WebSocket("ws://127.0.0.1:8000/ws/mpeg/1");
 
-socket.onopen = function() {
-    console.log("Connection established");
-};
+// socket.onopen = function() {
+//     console.log("Connection established");
+// };
 
-socket.onmessage = function(event) {
-    console.log("Got data: " + event.data);
-    var elements = document.getElementsByClassName("digit");
-    Array.from(elements)
-    .map(function (elem) {
-        elem.innerHTML = event.data;
-    });
-};
+// socket.onmessage = function(event) {
+//     console.log("Got data: " + event.data);
+//     var elements = document.getElementsByClassName("digit");
+//     Array.from(elements)
+//     .map(function (elem) {
+//         elem.innerHTML = event.data;
+//     });
+// };
 
-socket.onclose = function(event) {
-    if (event.wasClean) {
-        console.log("Connection closed successfully");
-    } else {
-        console.log("Connection closed unsuccessfully");
-    }
-    console.log('Code: ' + event.code + ' reason: ' + event.reason);
-};
+// socket.onclose = function(event) {
+//     if (event.wasClean) {
+//         console.log("Connection closed successfully");
+//     } else {
+//         console.log("Connection closed unsuccessfully");
+//     }
+//     console.log('Code: ' + event.code + ' reason: ' + event.reason);
+// };
 
-socket.onerror = function(error) {
-    console.log("Error: " + error.message);
-};
+// socket.onerror = function(error) {
+//     console.log("Error: " + error.message);
+// };
 
 constraints = {
     video: { width: 300, height: 300 }
@@ -49,7 +49,7 @@ navigator.mediaDevices.getUserMedia(constraints)
     );
 
 function clicked () {
-   
+    console.log("clicked");
     var { blob } = captureVideoFrame("video", "jpeg");
     var fd = new FormData();
     
@@ -57,15 +57,30 @@ function clicked () {
     
     $.ajax({
         type: 'POST',
-        url: "http://127.0.0.1:8000/image/1",
+        url: "http://192.168.1.47:8000/image/1",
         data: fd,
         processData: false,
         contentType: false
-    }).done(function(data) {
-        alert('Done'); 
-});
+    })
+    .done(function(msg) {
+        alert(msg);
+        var elements = document.getElementsByClassName("digit");
+        Array.from(elements)
+        .map(function (elem) {
+            elem.innerHTML = msg;
+        });
+    })
+    .fail(function( jqXHR, textStatus, errorThrown ) {
+        alert( "Request failed: " + textStatus + errorThrown );
+    })
+    .always(function() {
+        alert( "complete" );
+    });
+};
 
-}
+window.setInterval(function(){
+    clicked();
+}, 3000);
 
     
 function captureVideoFrame(video, format, quality) {
