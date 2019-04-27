@@ -57,13 +57,12 @@ function clicked () {
     
     $.ajax({
         type: 'POST',
-        url: "http://192.168.1.47:8000/image/1",
+        url: "http://192.168.0.84:8000/image/1",
         data: fd,
         processData: false,
         contentType: false
     })
     .done(function(msg) {
-        alert(msg);
         var elements = document.getElementsByClassName("digit");
         Array.from(elements)
         .map(function (elem) {
@@ -74,7 +73,7 @@ function clicked () {
         alert( "Request failed: " + textStatus + errorThrown );
     })
     .always(function() {
-        alert( "complete" );
+        
     });
 };
 

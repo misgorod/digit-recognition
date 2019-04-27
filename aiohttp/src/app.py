@@ -2,7 +2,7 @@ import os
 import aiohttp
 from aiohttp import web, MultipartWriter, WSMsgType
 from time import time
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageEnhance
 import PIL.ImageOps    
 import io
 import numpy as np
@@ -37,17 +37,39 @@ async def get_jpeg(request):
 
     image_bytes = file_field.file.read()
     image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
-    image = image_pil.filter(ImageFilter.CONTOUR)
-    inverted_image = PIL.ImageOps.invert(image)
-    images = inverted_image.resize((28, 28))
+    images = image_pil.resize((28, 28), Image.ANTIALIAS)
     images = np.array(images) 
-    images = np.reshape(images,(1,28,28)) 
+    images = np.reshape(images,(1,28,28))
+
     image_pos = modelrec.predict(images)
     s = np.argmax(image_pos)
 
     # async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
     #     await f.write(image_bytes)
     return web.Response(text=str(s))
+
+def preproc(image):
+    
+    
+    enhancer = ImageEnhance.Sharpness(image)
+    image = enhancer.enhance(0)
+
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(0.5)
+    
+    enhancer = ImageEnhance.Sharpness(image)
+    image = enhancer.enhance(5)
+    
+    
+
+    enhancer = ImageEnhance.Brightness(image)
+    image = enhancer.enhance(2)
+
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(22)
+    
+    image = image.filter(ImageFilter.CONTOUR)
+    return image
 
 def gen_files(directory):
     while True:
