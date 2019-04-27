@@ -101,7 +101,7 @@ async def get_jpeg(request):
 
     if id in sockets and sockets[id].output_sockets:
         for sock in sockets[id].output_sockets:
-            await sock.send_str(f"new: {s}")
+            await sock.send_str("new: {}".format(s))
     async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
         await f.write(image_bytes)
     return web.Response(text="OK")
