@@ -14,4 +14,4 @@ VOLUME [ "/app/src" ]
 EXPOSE 8000
 EXPOSE 8001
 
-CMD [ "adev", "runserver", "/app/src/app.py", "--verbose", "--root", "/app", "--static", "/app/src/static", "--livereload", "--debug-toolbar", "--host", "0.0.0.0"]
+CMD [ "adev", "runserver", "/app/src/app.py", "--verbose", "--root", "/app", "--debug-toolbar", "--host", "0.0.0.0"]

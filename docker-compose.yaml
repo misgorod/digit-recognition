@@ -8,7 +8,12 @@ services:
       - ./aiohttp/src:/app/src
     ports:
       - "8000:8000"
-      - "8001:8001"
     expose:
       - "8000"
-      - "8001"
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "8080:80"
+    expose:
+      - "80"

@@ -1,31 +1,3 @@
-socket = new WebSocket("ws://127.0.0.1:8000/ws/mpeg/1");
-
-socket.onopen = function() {
-    console.log("Connection established");
-};
-
-socket.onmessage = function(event) {
-    console.log("Got data: " + event.data);
-    var elements = document.getElementsByClassName("digit");
-    Array.from(elements)
-    .map(function (elem) {
-        elem.innerHTML = event.data;
-    });
-};
-
-socket.onclose = function(event) {
-    if (event.wasClean) {
-        console.log("Connection closed successfully");
-    } else {
-        console.log("Connection closed unsuccessfully");
-    }
-    console.log('Code: ' + event.code + ' reason: ' + event.reason);
-};
-
-socket.onerror = function(error) {
-    console.log("Error: " + error.message);
-};
-
 constraints = {
     video: { width: 300, height: 300 }
 }
@@ -33,8 +5,6 @@ constraints = {
 navigator.mediaDevices.getUserMedia(constraints)
     .then(
         function(stream) {
-            //console.log("stream");
-            //console.log(stream);
             var video = document.querySelector('video');
             video.srcObject = stream;
             video.onloadedmetadata = function(e) {
