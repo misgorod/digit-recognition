@@ -2,7 +2,8 @@ import os
 import aiohttp
 from aiohttp import web, MultipartWriter, WSMsgType
 from time import time
-from PIL import Image
+from PIL import Image, ImageFilter, ImageEnhance
+import PIL.ImageOps    
 import io
 import numpy as np
 import subprocess
@@ -25,80 +26,50 @@ class Session:
 async def hello(request):
     return web.Response(text="hello")
 
-# Video streaming through websocket mpeg
-@router.get("/ws/mpeg/{id}")
-async def ws_connection(request):
-    id = request.match_info['id']
-    ws = web.WebSocketResponse(protocols=["null"])
-    await ws.prepare(request)
-    if id in sockets:
-        sockets[id].output_sockets.append(ws)
-    else:
-        await ws.send_str("created")
-        sockets[id] = Session(output_socket=ws)
-    async for msg in ws:
-        if msg.type == WSMsgType.ERROR:
-            print('ws connection closed with exception %s' %
-                  ws.exception())
-    sockets[id].output_sockets.remove(ws)
-    return ws
-
-# Video streaming through motion jpeg
-# @router.get("/mjpeg/{id}")
-# async def get_mjpeg(request):
-#     id = request.match_info['id']
-#     response = web.StreamResponse(
-#         status=200,
-#         reason='OK',
-#         headers={
-#             'Content-Type': 'multipart/x-mixed-replace;boundary=--bound'
-#         }
-#     )
-#     await response.prepare(request)
-#     files = gen_files("files")
-
-#     #
-#     model = load_model('model/digs.h5')
-#     #
-#     while True:
-#         async with aiofiles.open(f"files/{next(files)}", "rb+") as f:
-#             frame = await f.read()
-#             nframe = Image.open(io.BytesIO(frame)).convert('LA')
-#             nframe = nframe.resize((28,28))
-#             nframe, dump = nframe.split()
-#             nframe = np.array(nframe)
-#             nframe = np.reshape(nframe,(1,784))
-#             s = np.argmax(model.predict(nframe)) 
-#             if id in sockets and sockets[id].output_sockets:
-#                 for sock in sockets[id].output_sockets:
-#                     await sock.send_str(str(s))
-#         with MultipartWriter('image/jpeg', boundary='bound') as mpwriter:
-#             mpwriter.append(frame, {
-#                 'Content-Type': 'image/jpeg'
-#             })
-#             await mpwriter.write(response, close_boundary=False)
-#         await response.drain()
-
 @router.post("/image/{id}")
 async def get_jpeg(request):
+    print("Start get_jpeg")
     id = request.match_info['id']
     post = await request.post()
     file_field = post['data']
-    model = load_model('model/digs.h5')
+   
+    modelrec = load_model('model/digs.1.h5')
+
     image_bytes = file_field.file.read()
-    image_pil = Image.open(io.BytesIO(image_bytes)).convert('LA')
-    image_pil = image_pil.resize((28, 28), Image.ANTIALIAS)
-    # image_pil.save("static/image.png")
-    image_pil, dump = image_pil.split() 
-    image_pil = np.array(image_pil) 
-    image_pil = np.reshape(image_pil,(1,784)) 
-    s = np.argmax(model.predict(image_pil))
-    if id in sockets and sockets[id].output_sockets:
-        for sock in sockets[id].output_sockets:
-            await sock.send_str(f"new: {s}")
-    async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
-        await f.write(image_bytes)
-    return web.Response(text="OK")
+    image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
+    images = image_pil.resize((28, 28), Image.ANTIALIAS)
+    images = np.array(images) 
+    images = np.reshape(images,(28, 28, 1))
+
+    image_pos = modelrec.predict(images)
+    s = np.argmax(image_pos)
+
+    # async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
+    #     await f.write(image_bytes)
+    return web.Response(text=str(s))
+
+def preproc(image):
+    
+    
+    enhancer = ImageEnhance.Sharpness(image)
+    image = enhancer.enhance(0)
+
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(0.5)
+    
+    enhancer = ImageEnhance.Sharpness(image)
+    image = enhancer.enhance(5)
+    
+    
+
+    enhancer = ImageEnhance.Brightness(image)
+    image = enhancer.enhance(2)
+
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(22)
+    
+    image = image.filter(ImageFilter.CONTOUR)
+    return image
 
 def gen_files(directory):
     while True:

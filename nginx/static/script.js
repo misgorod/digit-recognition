@@ -1,3 +1,34 @@
+<<<<<<< HEAD:nginx/static/script.js
+=======
+// socket = new WebSocket("ws://127.0.0.1:8000/ws/mpeg/1");
+
+// socket.onopen = function() {
+//     console.log("Connection established");
+// };
+
+// socket.onmessage = function(event) {
+//     console.log("Got data: " + event.data);
+//     var elements = document.getElementsByClassName("digit");
+//     Array.from(elements)
+//     .map(function (elem) {
+//         elem.innerHTML = event.data;
+//     });
+// };
+
+// socket.onclose = function(event) {
+//     if (event.wasClean) {
+//         console.log("Connection closed successfully");
+//     } else {
+//         console.log("Connection closed unsuccessfully");
+//     }
+//     console.log('Code: ' + event.code + ' reason: ' + event.reason);
+// };
+
+// socket.onerror = function(error) {
+//     console.log("Error: " + error.message);
+// };
+
+>>>>>>> origin/bug/help:aiohttp/src/static/script.js
 constraints = {
     video: { width: 300, height: 300 }
 }
@@ -19,25 +50,38 @@ navigator.mediaDevices.getUserMedia(constraints)
     );
 
 function clicked () {
+    console.log("clicked");
     var { blob } = captureVideoFrame("video", "jpeg");
     var fd = new FormData();
+    
     fd.append('data', blob);
+    
     $.ajax({
         type: 'POST',
-        url: "http://127.0.0.1:8000/image/1",
+        url: "http://192.168.0.84:8000/image/1",
         data: fd,
         processData: false,
         contentType: false
-    }).done(function(data) {
-        console.log(data);
-});
-}
-document.onkeydown = function (e) {
-    var keyCode = e.keyCode;
-    if(keyCode == 90) {
-        clicked();
-    }
+    })
+    .done(function(msg) {
+        var elements = document.getElementsByClassName("digit");
+        Array.from(elements)
+        .map(function (elem) {
+            elem.innerHTML = msg;
+        });
+    })
+    .fail(function( jqXHR, textStatus, errorThrown ) {
+        alert( "Request failed: " + textStatus + errorThrown );
+    })
+    .always(function() {
+        
+    });
 };
+
+window.setInterval(function(){
+    clicked();
+}, 3000);
+
     
 function captureVideoFrame(video, format, quality) {
     if (typeof video === 'string') {
