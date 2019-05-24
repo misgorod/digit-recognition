@@ -33,13 +33,13 @@ async def get_jpeg(request):
     post = await request.post()
     file_field = post['data']
    
-    modelrec = load_model('model/digs.h5')
+    modelrec = load_model('model/digs.1.h5')
 
     image_bytes = file_field.file.read()
     image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
     images = image_pil.resize((28, 28), Image.ANTIALIAS)
     images = np.array(images) 
-    images = np.reshape(images,(1,28,28))
+    images = np.reshape(images,(28, 28, 1))
 
     image_pos = modelrec.predict(images)
     s = np.argmax(image_pos)
