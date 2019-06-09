@@ -2,6 +2,7 @@ import os
 import aiohttp
 from aiohttp import web, MultipartWriter, WSMsgType
 from time import time
+import datetime
 from PIL import Image, ImageFilter, ImageEnhance
 import PIL.ImageOps    
 import io
@@ -13,52 +14,35 @@ from keras.models import load_model
 import aiofiles
 
 router = web.RouteTableDef()
-sockets = dict()
+modelrec = load_model('model/dig.h5')
 
-class Session:
-    def __init__(self, input_socket=None, output_socket=None):
-        self.output_sockets = list()
-        self.input_socket = input_socket
-        if output_socket != None:
-            self.output_sockets.append(output_socket)
-
-@router.get("/")
-async def hello(request):
-    return web.Response(text="hello")
-
-@router.post("/image/{id}")
+@router.post("/api/image/{id}")
 async def get_jpeg(request):
+    time = datetime.datetime.now()
     print("Start get_jpeg")
     id = request.match_info['id']
     post = await request.post()
     file_field = post['data']
-   
-    modelrec = load_model('model/digs.1.h5')
-
+    print("Before file read: {}".format(datetime.datetime.now() - time))
     image_bytes = file_field.file.read()
+    print("Before image open: {}".format(datetime.datetime.now() - time))
     image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
+    print("Before image resuze: {}".format(datetime.datetime.now() - time))
     images = image_pil.resize((28, 28), Image.ANTIALIAS)
-    images = np.array(images) 
-    images = np.reshape(images,(28, 28, 1))
-
+    images = preproc(images)
+    images.save('files/{}'.format(datetime.datetime.now()), 'JPEG')
+    images = np.array(images)
+    images = images / 255
+    print("Before array reshape: {}".format(datetime.datetime.now() - time))
+    images = np.reshape(images,(1, 28, 28, 1))
+    print("Before prediciton: {}".format(datetime.datetime.now() - time))
     image_pos = modelrec.predict(images)
     s = np.argmax(image_pos)
 
-    # async with aiofiles.open('static/filename.jpeg', 'wb+') as f:
-    #     await f.write(image_bytes)
     return web.Response(text=str(s))
 
 def preproc(image):
     
-    
-    enhancer = ImageEnhance.Sharpness(image)
-    image = enhancer.enhance(0)
-
-    enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(0.5)
-    
-    enhancer = ImageEnhance.Sharpness(image)
-    image = enhancer.enhance(5)
     
     
 
@@ -66,9 +50,9 @@ def preproc(image):
     image = enhancer.enhance(2)
 
     enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(22)
+    image = enhancer.enhance(12)
     
-    image = image.filter(ImageFilter.CONTOUR)
+    
     return image
 
 def gen_files(directory):
