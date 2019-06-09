@@ -10,7 +10,6 @@ import numpy as np
 import subprocess
 import keras
 from keras.models import load_model                                                                                                                                                                         
-
 import aiofiles
 
 router = web.RouteTableDef()
@@ -19,40 +18,26 @@ modelrec = load_model('model/dig.h5')
 @router.post("/api/image/{id}")
 async def get_jpeg(request):
     time = datetime.datetime.now()
-    print("Start get_jpeg")
     id = request.match_info['id']
     post = await request.post()
     file_field = post['data']
-    print("Before file read: {}".format(datetime.datetime.now() - time))
     image_bytes = file_field.file.read()
-    print("Before image open: {}".format(datetime.datetime.now() - time))
     image_pil = Image.open(io.BytesIO(image_bytes)).convert('L')
-    print("Before image resuze: {}".format(datetime.datetime.now() - time))
     images = image_pil.resize((28, 28), Image.ANTIALIAS)
     images = preproc(images)
-    images.save('files/{}'.format(datetime.datetime.now()), 'JPEG')
     images = np.array(images)
     images = images / 255
-    print("Before array reshape: {}".format(datetime.datetime.now() - time))
     images = np.reshape(images,(1, 28, 28, 1))
-    print("Before prediciton: {}".format(datetime.datetime.now() - time))
     image_pos = modelrec.predict(images)
     s = np.argmax(image_pos)
 
     return web.Response(text=str(s))
 
 def preproc(image):
-    
-    
-    
-
     enhancer = ImageEnhance.Brightness(image)
     image = enhancer.enhance(2)
-
     enhancer = ImageEnhance.Contrast(image)
     image = enhancer.enhance(12)
-    
-    
     return image
 
 def gen_files(directory):
